@@ -46,6 +46,7 @@ def generate_hash(password: str, salt: str = "00000") -> str:
 # Крок 6: Декоратор логування спроб автентифікації
 def log_event(func):
     """Записує кожну спробу входу у файл log.json за форматом з інструкції."""
+
     @wraps(func)
     def wrapper(username, password, *args, **kwargs):
         result_str = "failure"
@@ -129,7 +130,10 @@ def login(username: str, password: str, users_db: list[dict]) -> bool:
         return False
 
     for user_record in users_db:
-        if user_record["username"] == username and user_record["hash_password"] == current_hash:
+        if (
+            user_record["username"] == username
+            and user_record["hash_password"] == current_hash
+        ):
             return True
     return False
 
@@ -145,11 +149,12 @@ def main() -> None:
         ("analyst", "MalwareResearchLab2026!"),
         ("tech_support", "MonitoringDashboards1!"),
         ("auditor", "ComplianceCheck2026!"),
-        ("short_user", "Short123!"),       # викликає помилку ValidationError (< 15 симв.)
-        ("empty_pass", ""),                # викликає помилку ValueError
+        ("short_user", "Short123!"),  # викликає помилку ValidationError (< 15 симв.)
+        ("empty_pass", ""),  # викликає помилку ValueError
         ("dev_ops", "DockerComposeDeploy15!"),
         ("tester", "PenetrationTesting1!"),
         ("sysadmin", "RootAccessGranted99!"),
+        ("", "RootAccessGranted99!"),
     )
 
     # Крок 7: Обробка винятків
@@ -161,8 +166,14 @@ def main() -> None:
         users_db = load_and_display_users()
 
         print("\n3. Тестування функції входу (login):")
-        print(" - Вхід admin (вірний):", login("admin", "SuperSecurePassword123!", users_db))
-        print(" - Вхід incident_lead (невірний):", login("incident_lead", "WrongPassword12345!", users_db))
+        print(
+            " - Вхід admin (вірний):",
+            login("admin", "SuperSecurePassword123!", users_db),
+        )
+        print(
+            " - Вхід incident_lead (невірний):",
+            login("incident_lead", "WrongPassword12345!", users_db),
+        )
 
         print("\n4. Спроба входу з порожніми полями (тест ValueError):")
         try:

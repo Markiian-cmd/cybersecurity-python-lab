@@ -14,9 +14,18 @@ def analyze_passwords() -> None:
 
     # Крок 2: Завантаження початкових даних В-7
     passwords = [
-        "NetworkS3c!", "easy", "Firewa11@Pass", "anonymous",
-        "Intrus10n#Detect", "sample", "Malwar3@Scan", "qwerty",
-        "Vulnerab1l!ty", "common"
+        "NetworkS3c!",
+        "easy",
+        "Firewa11@Pass",
+        "anonymous",
+        "Intrus10n#Detect",
+        "sample",
+        "Malwar3@Scan",
+        "qwerty",
+        "Vulnerab1l!ty",
+        "common",
+        "qwertyasd!",
+        "WeCHat!!!!",
     ]
     criteria = {
         "min_length": 9,
@@ -25,7 +34,12 @@ def analyze_passwords() -> None:
         "require_special": True,
     }
     forbidden_passwords = {
-        "easy", "anonymous", "sample", "qwerty", "common", "password"
+        "easy",
+        "anonymous",
+        "sample",
+        "qwerty",
+        "common",
+        "password",
     }
 
     # Крок 3: Генерація 3 випадкових індексів та додавання дублікатів у кінець
@@ -58,14 +72,12 @@ def analyze_passwords() -> None:
         if pwd in forbidden_passwords or len(pwd) < criteria["min_length"]:
             status = "Заборонений"
         elif (
-            meets_all_security
-            and len(pwd) >= criteria["min_length"] + 4
-            and is_unique
+            meets_all_security and len(pwd) >= criteria["min_length"] + 4 and is_unique
         ):
             status = "Дуже сильний"
         elif meets_all_security:
             status = "Сильний"
-        elif criteria_met_count > 1:
+        elif criteria_met_count > 2:
             status = "Середній"
         else:
             status = "Слабкий"

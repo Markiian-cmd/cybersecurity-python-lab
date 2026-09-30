@@ -9,15 +9,42 @@ from shared.student import STUDENT_NAME, VARIANT_NUMBER
 
 
 def check_access() -> None:
-    print(f"\n--- Завдання 2 (Виконавець: {STUDENT_NAME}, Варіант: {VARIANT_NUMBER}) ---")
+    print(
+        f"\n--- Завдання 2 (Виконавець: {STUDENT_NAME}, Варіант: {VARIANT_NUMBER}) ---"
+    )
 
     # Вхідні дані В - 7
     users = {
-        "incident_commander": {"role": "incident_response", "clearance": 4, "department": "CSIRT", "active": True},
-        "malware_analyst": {"role": "malware_researcher", "clearance": 3, "department": "Research", "active": True},
-        "monitoring_tech": {"role": "monitoring", "clearance": 2, "department": "NOC", "active": True},
-        "customer_rep": {"role": "customer_service", "clearance": 1, "department": "Customer", "active": True},
-        "backup_service": {"role": "service_account", "clearance": 2, "department": "System", "active": False},
+        "incident_commander": {
+            "role": "incident_response",
+            "clearance": 4,
+            "department": "CSIRT",
+            "active": True,
+        },
+        "malware_analyst": {
+            "role": "malware_researcher",
+            "clearance": 3,
+            "department": "Research",
+            "active": True,
+        },
+        "monitoring_tech": {
+            "role": "monitoring",
+            "clearance": 2,
+            "department": "NOC",
+            "active": True,
+        },
+        "customer_rep": {
+            "role": "customer_service",
+            "clearance": 1,
+            "department": "Customer",
+            "active": True,
+        },
+        "backup_service": {
+            "role": "service_account",
+            "clearance": 2,
+            "department": "System",
+            "active": False,
+        },
     }
 
     resources = [
