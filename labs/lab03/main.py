@@ -18,10 +18,12 @@ from shared import student
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Створити відсутні таблиці один раз під час запуску."""
+    # Підготовка таблиць без автоматичного заповнення або очищення даних.
     initialize_database()
     yield
 
 
+# Створення застосунку з описом предметної області варіанта 7.
 app = FastAPI(
     title="Облік часу реагування на інциденти",
     description=(
@@ -31,16 +33,19 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+# Підключення окремих маршрутів категорій і вимірювань.
 app.include_router(categories.router)
 app.include_router(records.router)
 
 
+# Перетворення помилки пошуку запису або категорії на 404.
 @app.exception_handler(LookupError)
 async def not_found(_request: Request, error: LookupError) -> JSONResponse:
     """Перетворити відсутній ресурс на 404."""
     return JSONResponse(status_code=404, content={"detail": str(error)})
 
 
+# Повернення 409 при дублюванні або видаленні непорожньої категорії.
 @app.exception_handler(sqlite3.IntegrityError)
 async def conflict(_request: Request, _error: sqlite3.IntegrityError) -> JSONResponse:
     """Унікальність або заборона видалення непорожньої категорії."""
@@ -52,6 +57,7 @@ async def conflict(_request: Request, _error: sqlite3.IntegrityError) -> JSONRes
     )
 
 
+# Обробка інших помилок бази з відповіддю 500.
 @app.exception_handler(sqlite3.Error)
 async def database_error(_request: Request, error: sqlite3.Error) -> JSONResponse:
     """Записати технічні деталі в журнал, клієнту повернути загальну помилку."""
@@ -62,11 +68,13 @@ async def database_error(_request: Request, error: sqlite3.Error) -> JSONRespons
     )
 
 
+# Формування безпечної JSON-відповіді 422 для некоректних вхідних даних.
 @app.exception_handler(RequestValidationError)
 async def invalid_data(
     _request: Request, error: RequestValidationError
 ) -> JSONResponse:
     """Повернути 422 без несеріалізованих NaN та Infinity у тілі помилки."""
+    # Передавання лише розташування, опису й типу кожної помилки.
     details = [
         {"loc": item["loc"], "msg": item["msg"], "type": item["type"]}
         for item in error.errors()
@@ -74,12 +82,14 @@ async def invalid_data(
     return JSONResponse(status_code=422, content={"detail": details})
 
 
+# Маршрут швидкої перевірки доступності запущеного API.
 @app.get("/ping", tags=["Сервіс"], summary="Перевірити доступність API")
 def ping() -> dict[str, str]:
     """Перевірка доступності."""
     return {"status": "ok"}
 
 
+# Отримання ПІБ, групи та варіанта зі спільного модуля.
 @app.get("/student", tags=["Сервіс"], summary="Отримати дані студента")
 def get_student() -> dict[str, str | int]:
     """Дані з shared/student.py."""

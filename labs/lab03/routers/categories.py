@@ -7,15 +7,18 @@ from fastapi import APIRouter, Path, Response
 from labs.lab03 import repository
 from labs.lab03.schemas import CategoryCreate, CategoryRead
 
+# Групування маршрутів категорій під спільним префіксом.
 router = APIRouter(prefix="/categories", tags=["Категорії"])
 
 
+# Отримання списку категорій із перевіркою моделі відповіді.
 @router.get("", response_model=list[CategoryRead], summary="Отримати категорії")
 def list_categories() -> list[dict]:
     """Категорії за зростанням id."""
     return repository.list_categories()
 
 
+# Створення категорії з відповіддю 201 або конфліктом 409.
 @router.post(
     "",
     response_model=CategoryRead,
@@ -28,6 +31,7 @@ def create_category(category: CategoryCreate) -> dict:
     return repository.create_category(category.name)
 
 
+# Видалення порожньої категорії за додатним ідентифікатором.
 @router.delete(
     "/{category_id}",
     status_code=204,
@@ -43,4 +47,5 @@ def delete_category(
 ) -> Response:
     """Непорожню категорію захищає зовнішній ключ."""
     repository.delete_category(category_id)
+    # Успішне видалення повертає 204 без тіла відповіді.
     return Response(status_code=204)

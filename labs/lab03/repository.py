@@ -6,17 +6,20 @@ from contextlib import closing
 from labs.lab03.config import MAX_SQLITE_ID
 from labs.lab03.database import get_connection
 
+# Об'єднання вимірювань із назвами категорій через JOIN.
 RECORD_SELECT = """
     SELECT records.id, records.code, records.title, records.category_id,
            records.value, records.status, categories.name AS category_name
     FROM records JOIN categories ON categories.id = records.category_id
 """
+# Передавання значень окремо від SQL через іменовані параметри.
 RECORD_INSERT = """
     INSERT INTO records (code, title, category_id, value, status)
     VALUES (:code, :title, :category_id, :value, :status)
 """
 
 
+# Перевірка існування категорії перед додаванням або зміною запису.
 def _require_category(connection: sqlite3.Connection, category_id: int) -> None:
     if (
         category_id > MAX_SQLITE_ID
@@ -28,6 +31,7 @@ def _require_category(connection: sqlite3.Connection, category_id: int) -> None:
         raise LookupError("Категорію не знайдено.")
 
 
+# Читання одного запису або повідомлення про відсутній id.
 def _read_record(connection: sqlite3.Connection, record_id: int) -> dict:
     if record_id > MAX_SQLITE_ID:
         raise LookupError("Запис не знайдено.")
@@ -39,6 +43,7 @@ def _read_record(connection: sqlite3.Connection, record_id: int) -> dict:
     return dict(row)
 
 
+# Вставлення перевіреного запису через вже відкрите з'єднання.
 def _insert_record(connection: sqlite3.Connection, record: dict) -> dict:
     _require_category(connection, record["category_id"])
     cursor = connection.execute(RECORD_INSERT, record)
@@ -47,6 +52,7 @@ def _insert_record(connection: sqlite3.Connection, record: dict) -> dict:
 
 def list_categories() -> list[dict]:
     """Отримати категорії за зростанням id."""
+    # Закриття з'єднання автоматично після читання результату.
     with closing(get_connection()) as connection:
         return [
             dict(row)
@@ -56,6 +62,7 @@ def list_categories() -> list[dict]:
 
 def create_category(name: str) -> dict:
     """Створити категорію з автоматичним id."""
+    # Підтвердження успішних змін або скасування при помилці.
     with closing(get_connection()) as connection, connection:
         cursor = connection.execute("INSERT INTO categories (name) VALUES (?)", (name,))
         return {"id": cursor.lastrowid, "name": name}
@@ -69,18 +76,21 @@ def delete_category(category_id: int) -> None:
         cursor = connection.execute(
             "DELETE FROM categories WHERE id = ?", (category_id,)
         )
+        # Нуль змінених рядків означає відсутність потрібної категорії.
         if cursor.rowcount == 0:
             raise LookupError("Категорію не знайдено.")
 
 
 def get_record(record_id: int) -> dict:
     """Отримати запис і назву його категорії."""
+    # Використання спільної функції читання через окреме з'єднання.
     with closing(get_connection()) as connection:
         return _read_record(connection, record_id)
 
 
 def create_record(record: dict) -> dict:
     """Додати одне вимірювання."""
+    # Створення запису в транзакції з автоматичним закриттям з'єднання.
     with closing(get_connection()) as connection, connection:
         return _insert_record(connection, record)
 
@@ -95,23 +105,28 @@ def list_records(
     offset: int = 0,
 ) -> list[dict]:
     """Поєднати перевірені API фільтри через AND і повернути сторінку."""
+    # Великі ідентифікатори та зміщення не мають збігів у SQLite.
     if (
         category_id is not None and category_id > MAX_SQLITE_ID
     ) or offset > MAX_SQLITE_ID:
         return []
+    # Збирання SQL-умов окремо від введених користувачем значень.
     conditions, parameters = [], []
     for condition, value in (
         ("records.category_id = ?", category_id),
         ("records.status = ?", status),
         ("records.value >= ?", min_value),
+        # Буквальний пошук підрядка без шаблонів і SQL-підстановок.
         ("instr(records.title, ?) > 0", q),
     ):
         if value is not None:
             conditions.append(condition)
             parameters.append(value)
     query = RECORD_SELECT
+    # Одночасне застосування всіх заданих фільтрів через AND.
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
+    # Стабільне сортування й вибір потрібної сторінки результатів.
     query += " ORDER BY records.id LIMIT ? OFFSET ?"
     parameters.extend((limit, offset))
     with closing(get_connection()) as connection:
@@ -121,7 +136,9 @@ def list_records(
 def replace_record(record_id: int, record: dict) -> dict:
     """Замінити всі змінювані поля, зберігши id."""
     with closing(get_connection()) as connection, connection:
+        # Початок транзакції до перевірок і повного оновлення запису.
         connection.execute("BEGIN IMMEDIATE")
+        # Перевірка існування запису та нової категорії перед UPDATE.
         _read_record(connection, record_id)
         _require_category(connection, record["category_id"])
         connection.execute(
@@ -129,6 +146,7 @@ def replace_record(record_id: int, record: dict) -> dict:
                SET code=:code, title=:title, category_id=:category_id,
                    value=:value, status=:status
                WHERE id=:id""",
+            # Ідентифікатор визначає ціль оновлення, але не змінюється.
             {**record, "id": record_id},
         )
         return _read_record(connection, record_id)
@@ -140,12 +158,14 @@ def delete_record(record_id: int) -> None:
         raise LookupError("Запис не знайдено.")
     with closing(get_connection()) as connection, connection:
         cursor = connection.execute("DELETE FROM records WHERE id = ?", (record_id,))
+        # Виявлення відсутнього запису за кількістю видалених рядків.
         if cursor.rowcount == 0:
             raise LookupError("Запис не знайдено.")
 
 
 def bulk_create_records(records: list[dict]) -> list[dict]:
     """Вставити весь пакет однією транзакцією; помилка скасовує всі зміни."""
+    # Спільна транзакція підтверджує або скасовує весь пакет.
     with closing(get_connection()) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
         return [_insert_record(connection, record) for record in records]
@@ -154,15 +174,19 @@ def bulk_create_records(records: list[dict]) -> list[dict]:
 def populate_empty_database(categories: list[dict], records: list[dict]) -> bool:
     """Заповнити порожню базу; повернути False, якщо дані вже є."""
     with closing(get_connection()) as connection, connection:
+        # Перевірка порожності та вставлення виконуються в одній транзакції.
         connection.execute("BEGIN IMMEDIATE")
         occupied = connection.execute(
             "SELECT EXISTS(SELECT 1 FROM categories) OR EXISTS(SELECT 1 FROM records)"
         ).fetchone()[0]
+        # Повторне заповнення не змінює жодної з таблиць.
         if occupied:
             return False
+        # Категорії отримують початкові ідентифікатори безпосередньо з JSON.
         connection.executemany(
             "INSERT INTO categories (id, name) VALUES (:id, :name)", categories
         )
+        # Додавання всіх початкових вимірювань без окремих підтверджень.
         for record in records:
             _insert_record(connection, record)
         return True
