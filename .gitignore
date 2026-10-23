@@ -223,3 +223,7 @@ __marimo__/
 __pycache__/
 .ruff_cache/
 labs/**/data/
+
+!labs/lab03/data/
+labs/lab03/data/*
+!labs/lab03/data/seed.json
