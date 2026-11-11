@@ -227,3 +227,8 @@ labs/**/data/
 !labs/lab03/data/
 labs/lab03/data/*
 !labs/lab03/data/seed.json
+
+# Збереження синтетичної відповіді для лабораторної роботи №4.
+!labs/lab04/data/
+labs/lab04/data/*
+!labs/lab04/data/nvd_sample.json
